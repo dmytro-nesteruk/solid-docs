@@ -249,7 +249,7 @@ DOM на екран (подібно до ефекту `useLayoutEffect` у React
 
 ```js
 // Слуханання події(event), назва якої динамічно змінюється
-// i зберігається в сигналі eventName 
+// i зберігається в сигналі eventName
 createEffect(() => {
   const event = eventName();
   const callback = (e) => console.log(e);
@@ -302,28 +302,28 @@ return (
 ```
 
 Коли сигнал `username` оновлюється, функція ` searchForUser` буде викликана лише один раз.
-Якщо повернутий користувач дійсно змінився, оновиться `Memo` `user`, а потім автоматично 
+Якщо повернутий користувач дійсно змінився, оновиться `Memo` `user`, а потім автоматично
 оновляться обидва елементи списку.
 
 Якби ми замість цього визначили `user` як просту функцію
 `() => searchForUser(username())`, то `searchForUser` було б
 викликалася б двічі, по одному разу при оновленні кожного елемента списку.
 
-Інша ключова відмінність полягає у тому, що `мемо` може захищати залежні 
+Інша ключова відмінність полягає у тому, що `мемо` може захищати залежні
 елементи від оновлення, коли змінюються залежні елементи `мемо`, але не
-змінюється результуюче значення мемо. 
+змінюється результуюче значення мемо.
 Подібно до [`createSignal`](#createsignal), похідний сигнал, створений
-`createMemo`, _оновлюється_ (і запускає залежності на перевиконання) лише 
+`createMemo`, _оновлюється_ (і запускає залежності на перевиконання) лише
 тоді, коли значення, повернуте функцією `memo`, дійсно змінюється порівняно
-з попереднім значенням, згідно з оператором `===` у JavaScript. 
-Крім того, ви можете передати об'єкт параметрів зі значенням `equals`, 
-встановленим у `false`, щоб завжди оновлювати `memo` при зміні його 
+з попереднім значенням, згідно з оператором `===` у JavaScript.
+Крім того, ви можете передати об'єкт параметрів зі значенням `equals`,
+встановленим у `false`, щоб завжди оновлювати `memo` при зміні його
 залежностей, або ви можете передати власну функцію `equals` для перевірки
 рівності.
 
 Функція передана в `memo` викликається з аргументом, що дорівнює значенню,
 повернутому при останньому виконанні функції `memo`. При першому виклику це
-значення дорівнює необов'язковому другому аргументу `createMemo`. 
+значення дорівнює необов'язковому другому аргументу `createMemo`.
 Це корисно, наприклад, для зменшення обчислень:
 
 ```js
@@ -386,11 +386,15 @@ function createResource<T, U>(
 ): ResourceReturn<T>;
 ```
 
-Creates a signal that reflects the result of an async request.
+Створює сигнал, який відображає результат асинхронного запиту.
 
-`createResource` takes an asynchronous fetcher function and returns a signal that is updated with the resulting data when the fetcher completes.
+`createResource` приймає асинхронну функцію `fetcher` і повертає сигнал,
+який оновлюється результуючими даними, коли `fetcher` завершує роботу.
 
-There are two ways to use `createResource`: you can pass the fetcher function as the sole argument, or you can additionally pass a source signal as the first argument. The source signal will retrigger the fetcher whenever it changes, and its value will be passed to the fetcher.
+Існує два способи використання `createResource`: ви можете передати функцію `fetcher`
+як єдиний аргумент, або ви можете додатково передати сигнал-джерело як перший аргумент.
+Сигнал-джерело буде перезапускати `fetcher` щоразу, коли змінюватиметься,
+і його значення буде передано фетчеру.
 
 ```js
 const [data, { mutate, refetch }] = createResource(fetchData);
@@ -400,84 +404,121 @@ const [data, { mutate, refetch }] = createResource(fetchData);
 const [data, { mutate, refetch }] = createResource(sourceSignal, fetchData);
 ```
 
-In these snippets, the fetcher is the function `fetchData`, and `data()` is undefined until `fetchData` finishes resolving. In the first case, `fetchData` will be called immediately.
-In the second, `fetchData` will be called as soon as `sourceSignal` has any value other than `false`, `null`, or `undefined`.
-It will be called again whenever the value of `sourceSignal` changes, and that value will always be passed to `fetchData` as its first argument. To use a property on a store as the `sourceSignal`, you must wrap the property access in a function.
+У цих фрагментах фетчером є функція `fetchData`, а `data()` має
+значення `undefined`, поки `fetchData` не завершить обробку.
 
-You can call `mutate` to directly update the `data` signal (it works like any other signal setter). You can also call `refetch` to rerun the fetcher directly, and pass an optional argument to provide additional info to the fetcher: `refetch(info)`.
+У першому випадку `fetchData` буде викликано негайно.
 
-`data` works like a normal signal getter: use `data()` to read the last returned value of `fetchData`.
-But it also has extra reactive properties: `data.loading` tells you if the fetcher has been called but not returned, and `data.error` tells you if the request has errored out; if so, it contains the error thrown by the fetcher. (Note: if you anticipate errors, you may want to wrap `createResource` in an [ErrorBoundary](#errorboundary).)
+У другому випадку `fetchData` буде викликано, як тільки `sourceSignal`
+отримає будь-яке значення, відмінне від `false`, `null` або `undefined`.
 
-As of **1.4.0**, `data.latest` will return the last returned value and won't trigger [Suspense](#suspense) and [transitions](#usetransition); if no value has been returned yet, `data.latest` acts the same as `data()`. This can be useful if you want to show the out-of-date data while the new data is loading.
+Функція буде викликана щоразу, коли значення `sourceSignal` змінюватиметься,
+і це значення завжди буде передано функції `fetchData` як її перший аргумент.
+Щоб використовувати властивість(property) у сховищі(store)як `sourceSignal`,
+ви повинні обернути доступ до властивості у функцію.
 
-`loading`, `error`, and `latest` are reactive getters and can be tracked.
+Ви можете викликати функцію `mutate` для оновлення сигналу `data` напряму
+(він працює як будь-який інший `setter` сигналів). Ви також можете напряму
+викликати `refetch` для повторного запуску фетчера і передати необов'язковий
+аргумент для надання додаткової інформації фетчеру: `refetch(info)`.
 
-The `fetcher` is the async function that you provide to `createResource` to actually fetch the data.
-It is passed two arguments: the value of the source signal (if provided), and an info object with two properties: `value` and `refetching`. `value` tells you the previously fetched value.
-`refetching` is `true` if the fetcher was triggered using the `refetch` function and `false` otherwise.
-If the `refetch` function was called with an argument (`refetch(info)`), `refetching` is set to that argument.
+`data` працює як звичайний `геттер` сигналів: використовуйте `data()`
+для читання останнього повернутого значення `fetchData`. Але він також має
+додаткові реактивні властивості(properties): `data.loading` повідомляє вам,
+якщо фетчер було викликано, але він ще не був завершений, а `data.error`
+повідомляє вам, якщо запит було виконано з помилкою; якщо так, то він містить
+помилку, яку спричинив фетчер. (Примітка: якщо ви передбачаєте помилки,
+ви можете обернути `createResource` у [ErrorBoundary](#errorboundary)).
+
+Починаючи з версії **1.4.0**, `data.latest` повертатиме останнє повернуте
+значення і не викликатиме [Suspense](#suspense) і [transitions](#usetransition);
+якщо жодного значення ще не повернуто, `data.latest` діє так само, як `data()`.
+Це може бути корисно, якщо ви хочете показати застарілі дані під час завантаження нових.
+
+`loading`, `error` та `latest` є реактивними геттерами і можуть бути відстежені.
+
+`Fetcher` - це асинхронна функція, яку ви передаєте функції `createResource`
+для отримання даних. Їй передається два аргументи: значення сигналу-джерела
+(якщо воно є) та інформаційний об'єкт з двома властивостями: `value` та `refetching`.
+`value` повідомляє вам попередньо отримане значення. `refetching` має значення `true`,
+якщо фетчер було запущено за допомогою функції `refetch`, і `false` у протилежному випадку.
+Якщо функція `refetch` була викликана з аргументом (`refetch(info)`), то `refetching`
+буде мати значення, яке ви передали як аргумент.
 
 ```js
 async function fetchData(source, { value, refetching }) {
-  // Fetch the data and return a value.
-  //`source` tells you the current value of the source signal;
-  //`value` tells you the last returned value of the fetcher;
-  //`refetching` is true when the fetcher is triggered by calling `refetch()`,
-  // or equal to the optional data passed: `refetch(info)`
+  // Отримує дані та повертає значення.
+  // `source` - поточне значення сигналу-джерела;
+  // `value` - останнє повернуте значення функції-фетчера;
+  // `refetching` має значення true, коли фетчер викликається викликом `refetch()`,
+  // або дорівнює необов'язковому переданому аргументу: `refetch(info)`.
 }
 
 const [data, { mutate, refetch }] = createResource(getQuery, fetchData);
 
-// read value
+// Читаємо дані
 data();
 
-// check if loading
+// Перевіряємо, чи дані завантажуються
 data.loading;
 
-// check if errored
+// Перевіряємо чи не сталося помилки
 data.error;
 
-// directly set value without creating promise
+// Напряму встановлюємо значення без створення `promise`
 mutate(optimisticValue);
 
-// refetch the last request explicitly
+// Напряму перезавантажуємо останній запит
 refetch();
 ```
 
-**New in v1.4.0**
+**Нове у версії v1.4.0**
 
-If you're using `renderToStream`, you can tell Solid to wait for a resource before flushing the stream using the `deferStream` option:
+Якщо ви використовуєте [`renderToStream`](#rendertostream), ви можете
+вказати Solid чекати на ресурс перед зливанням потоку(flushing the stream)
+за допомогою опції `deferStream`:
 
 ```js
-// fetches a user and streams content as soon as possible
+// Відсилає запит і віддає дані якомога швидше
 const [user] = createResource(() => params.id, fetchUser);
 
-// fetches a user but only streams content after this resource has loaded
+// Відсилає запит, але віддає дані тільки після того ресурс буде завантажено
 const [user] = createResource(() => params.id, fetchUser, {
   deferStream: true,
 });
 ```
 
-**New in v1.5.0**
+**Нове у версії v1.5.0**
 
-We've added a new `state` field which covers a more detailed view of the Resource state beyond `loading` and `error`. You can now check whether a Resource is `"unresolved"`, `"pending"`, `"ready"`, `"refreshing"`, or `"error"`.
+Ми додали нове поле `state`, яке надає більшe деталей щодо `Ресурсу`.
+Тепер ви можете перевірити, чи є ресурс `unresolved`, `pending`,
+`ready`, `refetching` або `errored`.
 
-| state      | value resolved | loading | has error |
-| ---------- | -------------- | ------- | --------- |
-| unresolved | No             | No      | No        |
-| pending    | No             | Yes     | No        |
-| ready      | Yes            | No      | No        |
-| refreshing | Yes            | Yes     | No        |
-| errored    | No             | No      | Yes       |
+| стан(state) | значення отримано | завантаження | має помилку |
+| ----------- | ----------------- | ------------ | ----------- |
+| unresolved  | Так               | Ні           | Ні          |
+| pending     | Ні                | Так          | Ні          |
+| ready       | Так               | Ні           | Ні          |
+| refreshing  | Так               | Так          | Ні          |
+| errored     | Ні                | Ні           | Так         |
 
-**New in v1.5.0**
+**Нове у версії v1.5.0**
 
-When server rendering resources especially when fetching when embedding Solid in other system that fetch before render, you might want to initiate the resource with this prefetched value instead of fetching again and having the resource serialize it isn't own state. You can use the new `ssrLoadFrom` option for this. Instead of using the default `"server"` value, you can pass `"initial"` and the resource will use `initialValue` as if it were the result of the first fetch for both SSR and hydration.
+Під час серверного рендерингу ресурсів, особливо під час завантаження
+даних при вбудовуванні Solid в іншу систему, яка завантажує дані перед
+рендерингом, ви можете ініціювати ресурс цим попередньо завантаженим
+значенням, замість того, щоб завантажувати його знову і змушувати ресурс
+серіалізувати його невласний стан. Для цього ви можете скористатися
+новим параметром `ssrLoadFrom`. Замість використання значення за замовчуванням
+`"server"` ви можете передати `"initial"`, і ресурс використовуватиме
+`initialValue` так, ніби це був результат першого завантаження як для SSR,
+так і для гідратації.
 
-**New in 1.5.0** _Experimental_
+**Новe у версії v1.5.0** _Експериментальне_
 
-Resources can be set with custom defined storage with the same signature as a Signal by using the `storage` option. For example using a custom reconciling store could be done this way:
+Ресурси можуть бути створені з "кастомним" сховищем(storage) з тією ж сигнатурою,
+що і `Сигнал`, за допомогою опції `storage`. Наприклад, використання "кастомного"
+сховища узгодження(reconciling store) можна реалізувати таким чином:
 
 ```ts
 function createDeepSignal<T>(value: T): Signal<T> {
