@@ -148,17 +148,17 @@ import { createEffect } from "solid-js";
 function createEffect<T>(fn: (v: T) => T, value?: T): void;
 ```
 
-Effects are a general way to make arbitrary code ("side effects")
-run whenever dependencies change, e.g., to modify the DOM manually.
-`createEffect` creates a new computation that runs the given function
-in a tracking scope, thus automatically tracking its dependencies,
-and automatically reruns the function whenever the dependencies update.
-For example:
+Ефекти - це загальний спосіб змусити довільний код ("побічні ефекти")
+запускатися при зміні залежностей, наприклад, для модифікації DOM вручну.
+`createEffect` створює нове обчислення, яке виконує задану функцію
+в області відстеження, автоматично відстежую її залежності,
+і автоматично перезапускає функцію щоразу, коли залежності оновлюються.
+Наприклад:
 
 ```js
 const [a, setA] = createSignal(initialValue);
 
-// effect that depends on signal `a`
+// ефект, який залежить від сигналу `a`
 createEffect(() => doSideEffect(a()));
 ```
 
@@ -168,6 +168,12 @@ equal to the optional second argument to `createEffect`.
 This allows you to compute diffs without creating an additional closure
 to remember the last computed value. For example:
 
+Функція ефекту викликається з аргументом, що дорівнює значенню, повернутому
+при останньому виконанні функції ефекту або при першому виклику,
+рівним необов'язковому другому аргументу функції `createEffect`.
+Це дозволяє обчислювати різницю без створення додаткового замикання(closure)
+для запам'ятовування останнього обчисленого значення. Наприклад:
+
 ```js
 createEffect((prev) => {
   const sum = a() + b();
@@ -176,43 +182,44 @@ createEffect((prev) => {
 }, 0);
 ```
 
-Effects are meant primarily for side effects that read but don't write
-to the reactive system:
-it's best to avoid setting signals in effects, which without care
-can cause additional rendering or even infinite effect loops.
-Instead, prefer using [`createMemo`](#creatememo) to compute new values
-that depend on other reactive values, so the reactive system knows what
-depends on what, and can optimize accordingly.
+Ефекти призначені в першу чергу для побічних ефектів, які читають щось з реактивної
+системи але не записують щось в неї:
+краще уникати встановлення сигналів в ефектах, які без належної обережності можуть
+спричитяни додаткові рендери або навіть нескінченні цикли ефектів.
+Натомість, краще використовувати [`createMemo`](#creatememo) для обчислення нових
+значень, які залежать від інших реактивних значень, щоб реактивна система знала, що
+від чого залежить, і може оптимізуватися відповідно.
 
-The _first_ execution of the effect function is not immediate;
-it's scheduled to run after the current rendering phase
-(e.g., after calling the function passed to [`render`](#render),
-[`createRoot`](#createroot), or [`runWithOwner`](#runwithowner)).
-If you want to wait for the first execution to occur, use
+_Перше_ виконання функції ефекту не є негайним;
+воно заплановане на запуск після завершення поточної фази рендерингу
+(наприклад, після виклику функції, переданої в [`render`](#render),
+[`createRoot`](#createroot) або [`runWithOwner`](#runwithowner)).
+Якщо ви хочете дочекатися першого виконання, використовуйте
 [`queueMicrotask`](https://developer.mozilla.org/en-US/docs/Web/API/queueMicrotask)
-(which runs before the browser renders the DOM) or
-`await Promise.resolve()` or `setTimeout(..., 0)`
-(which run after browser rendering).
+(яка запускається до того, як браузер відрендерить DOM) або
+`await Promise.resolve()` або `setTimeout(..., 0)`
+(які виконуються після рендерингу браузером).
 
 ```js
-// assume this code is in a component function, so is part of a rendering phase
+// Припустимо, що цей код знаходиться у функції
+// компонента, тобто є частиною фази рендерингу
 const [count, setCount] = createSignal(0);
 
-// this effect prints count at the beginning and when it changes
+// Цей ефект виводить в консоль браузeра count на початку та при його зміні
 createEffect(() => console.log("count =", count()));
-// effect won't run yet
+// Eфект ще не запущено
 console.log("hello");
-setCount(1); // effect still won't run yet
-setCount(2); // effect still won't run yet
+setCount(1); // ефект все ще не запущено
+setCount(2); // ефект все ще не запущено
 
 queueMicrotask(() => {
-  // now `count = 2` will print
+  // Зараз буде виведено `count = 2`
   console.log("microtask");
-  setCount(3); // immediately prints `count = 3`
+  setCount(3); // негайно виведе `count = 3`
   console.log("goodbye");
 });
 
-// --- overall output: ---
+// --- Результат: ---
 // hello
 // count = 2
 // microtask
@@ -220,34 +227,35 @@ queueMicrotask(() => {
 // goodbye
 ```
 
-This delay in first execution is useful because it means
-an effect defined in a component scope runs after
-the JSX returned by the component gets added to the DOM.
-In particular, [`ref`](#ref)s will already be set.
-Thus you can use an effect to manipulate the DOM manually,
-call vanilla JS libraries, or other side effects.
+Ця затримка при першому виконанні є корисною, оскільки вона означає, що
+ефект, визначений в області видимості компонента, виконується після того, як
+JSX, повернутий компонентом, буде додано до DOM.
+Зокрема, [`ref`](#ref) вже буде встановлено.
+Таким чином, ви можете використовувати ефект для маніпулювання DOM вручну,
+викликати ванільні(vanilla) JS-бібліотеки або інші побічні ефекти.
 
-Note that the first run of the effect still runs before the browser renders
-the DOM to the screen (similar to React's `useLayoutEffect`).
-If you need to wait until after rendering (e.g., to measure the rendering),
-you can use `await Promise.resolve()` (or `Promise.resolve().then(...)`),
-but note that subsequent use of reactive state (such as signals)
-will not trigger the effect to rerun, as tracking is not
-possible after an `async` function uses `await`.
-Thus you should use all dependencies before the promise.
+Зверніть увагу, що перший запуск ефекту все ще відбувається до того, як браузер відрендерить
+DOM на екран (подібно до ефекту `useLayoutEffect` у React).
+Якщо вам потрібно дочекатися завершення рендерингу (наприклад, для вимірювання рендерингу),
+ви можете використати `await Promise.resolve()` (або `Promise.resolve().then(...)`),
+але зауважте, що подальше використання реактивного стану (наприклад, сигналів)
+не призведе до повторного запуску ефекту, оскільки відстеження не можливе
+після того, як функція `async` використовує `await`.
+Таким чином, ви повинні використовувати всі залежності перед обіцянкою(promise).
 
-If you'd rather an effect run immediately even for its first run,
-use [`createRenderEffect`](#createrendereffect) or
+Якщо вам потрібно, щоб ефект спрацював негайно, навіть при першому запуску,
+використовуйте [`createRenderEffect`](#createrendereffect) або
 [`createComputed`](#createcomputed).
 
-You can clean up your side effects in between executions of the effect function
-by calling [`onCleanup`](#oncleanup) _inside_ the effect function.
-Such a cleanup function gets called both in between effect executions and
-when the effect gets disposed (e.g., the containing component unmounts).
-For example:
+Ви можете очистити свої побічні ефекти між виконаннями функції ефекту
+викликавши [`onCleanup`](#oncleanup) _всередині_ функції ефекту.
+Така функція очищення викликається як між виконаннями ефекту, так і
+коли ефект видаляється (наприклад, компонент, що його містить, демонтується).
+Наприклад:
 
 ```js
-// listen to event dynamically given by eventName signal
+// Слуханання події(event), назва якої динамічно змінюється
+// i зберігається в сигналі eventName 
 createEffect(() => {
   const event = eventName();
   const callback = (e) => console.log(e);
