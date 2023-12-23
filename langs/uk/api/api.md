@@ -162,12 +162,6 @@ const [a, setA] = createSignal(initialValue);
 createEffect(() => doSideEffect(a()));
 ```
 
-The effect function gets called with an argument equal to the value returned
-from the effect function's last execution, or on the first call,
-equal to the optional second argument to `createEffect`.
-This allows you to compute diffs without creating an additional closure
-to remember the last computed value. For example:
-
 Функція ефекту викликається з аргументом, що дорівнює значенню, повернутому
 при останньому виконанні функції ефекту або при першому виклику,
 рівним необов'язковому другому аргументу функції `createEffect`.
@@ -276,27 +270,27 @@ function createMemo<T>(
 ): () => T;
 ```
 
-Memos let you efficiently use a derived value in many reactive computations.
-`createMemo` creates a readonly reactive value equal to the return value of
-the given function and makes sure that function only gets executed when its dependencies change.
+`Memo` дозволяють ефективно використовувати похідне значення у багатьох реактивних обчисленнях.
+`createMemo` створює доступне лише для читання реактивне значення, яке дорівнює значенню, що повертає
+передана як аргумент функція і гарантує, що ця функція буде виконана лише тоді, коли зміняться її залежності.
 
 ```js
 const value = createMemo(() => computeExpensiveValue(a(), b()));
 
-// read value
+// Читання значення
 value();
 ```
 
-In Solid, you often don't need to wrap functions in memos;
-you can alternatively just define and call a regular function
-to get similar reactive behavior.
-The main difference is when you call the function in multiple reactive settings.
-In this case, when the function's dependencies update, the function will get
-called multiple times unless it is wrapped in `createMemo`. For example:
+У Solid не завжди потрібно обгортати функції у примітки;
+ви можете просто визначити і викликати звичайну функцію щоб отримати аналогічну поведінку.
+Основна відмінність полягає в тому, що ви викликаєте функцію в декількох реактивних
+середовищах(multiple reactive settings).
+У цьому випадку, коли залежності функції оновлюються, функція буде
+буде викликано декілька разів, якщо тільки вона не загорнута в `createMemo`. Наприклад:
 
 ```js
 const user = createMemo(() => searchForUser(username()));
-// compare with: const user = () => searchForUser(username());
+// Можна порівняти з: const user = () => searchForUser(username());
 return (
   <ul>
     <li>Your name is "{user()?.name}"</li>
@@ -307,39 +301,41 @@ return (
 );
 ```
 
-When the `username` signal updates, `searchForUser` will get called just once.
-If the returned user actually changed, the `user` memo updates, and then both
-list items will update automatically.
+Коли сигнал `username` оновлюється, функція ` searchForUser` буде викликана лише один раз.
+Якщо повернутий користувач дійсно змінився, оновиться `Memo` `user`, а потім автоматично 
+оновляться обидва елементи списку.
 
-If we had instead defined `user` as a plain function
-`() => searchForUser(username())`, then `searchForUser` would have been
-called twice, once when updating each list item.
+Якби ми замість цього визначили `user` як просту функцію
+`() => searchForUser(username())`, то `searchForUser` було б
+викликалася б двічі, по одному разу при оновленні кожного елемента списку.
 
-Another key difference is that a memo can shield dependents from updating
-when the memo's dependencies change but the resulting memo value doesn't.
-Like [`createSignal`](#createsignal), the derived signal made by `createMemo`
-_updates_ (and triggers dependents to rerun) only when the value returned by
-the memo function actually changes from the previous value,
-according to JavaScript's `===` operator.
-Alternatively, you can pass an options object with `equals` set to `false`
-to always update the memo when its dependencies change,
-or you can pass your own `equals` function for testing equality.
+Інша ключова відмінність полягає у тому, що `мемо` може захищати залежні 
+елементи від оновлення, коли змінюються залежні елементи `мемо`, але не
+змінюється результуюче значення мемо. 
+Подібно до [`createSignal`](#createsignal), похідний сигнал, створений
+`createMemo`, _оновлюється_ (і запускає залежності на перевиконання) лише 
+тоді, коли значення, повернуте функцією `memo`, дійсно змінюється порівняно
+з попереднім значенням, згідно з оператором `===` у JavaScript. 
+Крім того, ви можете передати об'єкт параметрів зі значенням `equals`, 
+встановленим у `false`, щоб завжди оновлювати `memo` при зміні його 
+залежностей, або ви можете передати власну функцію `equals` для перевірки
+рівності.
 
-The memo function gets called with an argument equal to the value returned
-from the memo function's last execution, or on the first call,
-equal to the optional second argument to `createMemo`.
-This is useful for reducing computations, for example:
+Функція передана в `memo` викликається з аргументом, що дорівнює значенню,
+повернутому при останньому виконанні функції `memo`. При першому виклику це
+значення дорівнює необов'язковому другому аргументу `createMemo`. 
+Це корисно, наприклад, для зменшення обчислень:
 
 ```js
-// track the sum of all values taken on by input() as it updates
+// Відстежуватиме суму всіх значень, які приймає функція input() при її оновленні
 const sum = createMemo((prev) => input() + prev, 0);
 ```
 
-The memo function should not change other signals by calling setters
-(it should be "pure").
-This enables Solid to optimize the execution order of memo updates
-according to their dependency graph, so that all memos can update
-at most once in response to a dependency change.
+Функція передана до `createMemo` не повинна змінювати інші сигнали
+шляхом виклику сеттерів (вона має бути "чистою"). Це дозволяє Solid
+оптимізувати порядок виконання оновлень `мемо` відповідно до їх графу
+залежностей, так що всі `мемо` можуть оновлюватися не більше одного разу
+у відповідь на зміну залежності.
 
 ## `createResource`
 
